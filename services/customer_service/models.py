@@ -26,6 +26,7 @@ class CustomerBase(BaseModel):
 class CustomerCreate(CustomerBase):
     """Customer creation model"""
     user_id: str = Field(..., description="User ID from auth service")
+    role: UserRole = Field(..., description="User role (from JWT token via Gateway)")
 
 
 class CustomerUpdate(BaseModel):
@@ -39,6 +40,7 @@ class CustomerOut(CustomerBase):
     """Customer output model"""
     id: str
     user_id: str
+    role: UserRole
     created_at: datetime
     updated_at: datetime
 

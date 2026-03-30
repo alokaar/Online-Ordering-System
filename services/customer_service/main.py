@@ -87,6 +87,7 @@ async def create_customer_profile(
     Create a new customer profile.
     - ADMIN, CUSTOMER, RESTAURANT: Can create profiles
     - The user_id in the request should match the authenticated user (except ADMIN)
+    - Role is automatically set from JWT token (via Gateway header)
     """
     rbac = RBACService(rbac_context.role)
 
@@ -96,6 +97,9 @@ async def create_customer_profile(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot create customer profile for another user",
         )
+
+    # Override role with the one from JWT token (passed via header from Gateway)
+    customer_data.role = rbac_context.role
 
     logger.info(
         f"Creating customer profile | user_id={customer_data.user_id} | role={rbac_context.role}"

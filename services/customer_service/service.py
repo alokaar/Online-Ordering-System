@@ -134,6 +134,7 @@ class CustomerService:
             "full_name": customer_data.full_name,
             "phone": customer_data.phone,
             "address": customer_data.address,
+            "role": customer_data.role.value,
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
         }
@@ -146,7 +147,7 @@ class CustomerService:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Customer creation failed",
             )
-        logger.info(f"Customer created successfully | user_id={customer_data.user_id} | db_id={result.inserted_id}")
+        logger.info(f"Customer created successfully | user_id={customer_data.user_id} | role={customer_data.role} | db_id={result.inserted_id}")
         return self._doc_to_out(created)
 
     async def get_customer_by_user_id(self, user_id: str) -> Optional[CustomerOut]:
@@ -206,6 +207,7 @@ class CustomerService:
             full_name=doc.get("full_name"),
             phone=doc.get("phone"),
             address=doc.get("address"),
+            role=UserRole(doc.get("role", "customer")),
             created_at=doc["created_at"],
             updated_at=doc["updated_at"],
         )

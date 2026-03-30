@@ -59,23 +59,32 @@ services/customer_service/
    ✓ Row-level security (users can only access own data)
    ✓ Different permissions per endpoint
    ✓ Easy to extend with custom roles
+   ✓ Role is stored in customer profile for quick access
 
-2. JWT AUTHENTICATION
+2. AUTHENTICATION & PASSWORD MANAGEMENT
+   ✓ Passwords stored in Auth Service (users collection)
+   ✓ Login via Auth Service (/auth/login) → returns JWT token
+   ✓ JWT token passed to Gateway → Gateway extracts role
+   ✓ Gateway sends X-User-Role header to Customer Service
+   ✓ Customer Service stores role (NOT password)
+   ✓ Separation of concerns: Auth ≠ Profile Management
+
+3. JWT AUTHENTICATION
    ✓ Token validation via headers from API Gateway
    ✓ Headers: X-User-ID, X-User-Email, X-User-Role
    ✓ No token validation in service (Gateway responsibility)
 
-3. ASYNC DATABASE OPERATIONS
+4. ASYNC DATABASE OPERATIONS
    ✓ Motor (async MongoDB driver)
    ✓ Non-blocking I/O
    ✓ Automatic connection management
 
-4. PROFESSIONAL LOGGING
+5. PROFESSIONAL LOGGING
    ✓ Request logging with action context
    ✓ Error tracking
    ✓ Database connection status
 
-5. HEALTH CHECKS
+6. HEALTH CHECKS
    ✓ /health endpoint for monitoring
    ✓ Database connectivity status
    ✓ Service readiness checks
@@ -86,6 +95,39 @@ services/customer_service/
 # ============================================================================
 
 """
+UNDERSTANDING THE FULL FLOW:
+
+1. User Registration (Auth Service)
+   curl -X POST http://localhost:8000/auth/register \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "john@example.com",
+       "password": "securepass123",
+       "full_name": "John Doe"
+     }'
+   Response: {"id": "user_123", "email": "john@example.com", ...}
+   
+2. User Login (Auth Service)
+   curl -X POST http://localhost:8000/auth/login \
+     -H "Content-Type: application/x-www-form-urlencoded" \
+     -d "username=john@example.com&password=securepass123"
+   Response: {"access_token": "eyJ0eXAi...", "token_type": "bearer"}
+   
+3. User Creates Profile (Customer Service via Gateway)
+   curl -X POST http://localhost:8000/api/v1/customers \
+     -H "Authorization: Bearer eyJ0eXAi..." \
+     -H "Content-Type: application/json" \
+     -d '{
+       "user_id": "user_123",
+       "email": "john@example.com",
+       "full_name": "John Doe"
+     }'
+   Gateway:
+     - Validates JWT token
+     - Extracts user_id, role from token
+     - Sends to Customer Service with X-User-Role header
+   Response: Contains "role": "customer" field
+   
 STEP 1: Install Dependencies (if needed)
   cd /path/to/project
   pip install -r requirements.txt
@@ -143,6 +185,19 @@ TEST 2: Create Customer (as ADMIN)
       "phone": "+1234567890",
       "address": "123 Main St"
     }'
+  
+  Response:
+    {
+      "id": "...",
+      "user_id": "user_123",
+      "email": "john@example.com",
+      "full_name": "John Doe",
+      "phone": "+1234567890",
+      "address": "123 Main St",
+      "role": "admin",
+      "created_at": "...",
+      "updated_at": "..."
+    }
 
 TEST 3: Get Own Profile
   curl http://localhost:8003/customers/me \
@@ -188,6 +243,7 @@ TEST 7: Delete Profile (ADMIN ONLY)
 Endpoint               | ADMIN | RESTAURANT | CUSTOMER | GUEST
 ----------------------|-------|-----------|----------|-------
 POST /customers       | ✅    | ✅        | ✅       | ❌
+  └─ Role stored      | admin | restaurant|customer  | N/A
 GET /customers/me     | ✅    | ✅        | ✅       | ❌
 GET /customers/{id}   | ✅    | ✅/own    | ✅/own   | ❌
 GET /customers (list) | ✅    | ❌        | ❌       | ❌
@@ -198,6 +254,9 @@ Legend:
   ✅     = Full access
   ✅/own = Can only access own data
   ❌     = No access (403 Forbidden)
+  
+Note: Role is automatically set from the JWT token (X-User-Role header)
+      and cannot be changed by the client during creation.
 """
 
 # ============================================================================

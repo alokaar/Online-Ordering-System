@@ -8,6 +8,43 @@ Manages user customer profiles with **Role-Based Access Control (RBAC)** for the
 - **Database:** MongoDB (async Motor)
 - **Authentication:** JWT tokens (validated by API Gateway)
 - **Authorization:** RBAC via headers from Gateway
+- **Role Storage:** Customer profiles store user role for quick access
+
+## Key Concepts
+
+### Authentication Flow
+
+```
+1. User Registration (Auth Service)
+   POST /auth/register
+   Input: email, password, full_name
+   Creates: User in 'users' collection with password hash
+   Returns: User ID
+   
+2. User Login (Auth Service)
+   POST /auth/login
+   Input: email, password
+   Returns: JWT token (contains user_id + role)
+   
+3. API Gateway
+   - Validates JWT token
+   - Extracts user_id, email, role from token
+   - Passes as headers: X-User-ID, X-User-Email, X-User-Role
+   
+4. Customer Service (Your Service)
+   - Receives headers from Gateway
+   - Creates/manages customer profile with stored role
+   - RBAC checks based on role
+```
+
+### Password Management
+
+⚠️ **Important:** Passwords are managed by the **Auth Service only**, not by Customer Service.
+
+- Passwords are stored in Auth Service (`users` collection)
+- Customer Service stores **role** (not password)
+- Login happens via Auth Service `/auth/login`
+- Login returns JWT token that is passed to Customer Service via Gateway
 
 ## Structure
 
@@ -100,6 +137,8 @@ X-User-Role: customer
 }
 ```
 
+**Note:** The `role` field in the request is **ignored**. The role is always set from the JWT token (via `X-User-Role` header from Gateway). This ensures the role cannot be spoofed.
+
 **Response:** `201 Created`
 
 ```json
@@ -110,6 +149,7 @@ X-User-Role: customer
   "full_name": "John Doe",
   "phone": "+1234567890",
   "address": "123 Main St, City",
+  "role": "customer",
   "created_at": "2024-01-15T10:30:00Z",
   "updated_at": "2024-01-15T10:30:00Z"
 }
@@ -355,7 +395,49 @@ if not rbac.can_view_customer(target_user_id, rbac_context.user_id):
 
 ---
 
-## Integration with API Gateway
+## FAQ: Authentication & Password Management
+
+### Q: Where are passwords stored?
+**A:** Passwords are stored in the **Auth Service** (`users` collection), NOT in Customer Service. When you register a user via `/auth/register`, the password is hashed and stored there.
+
+### Q: How does login work?
+**A:** 
+1. User calls `/auth/login` with email + password
+2. Auth Service verifies password and returns JWT token
+3. Client sends JWT token in each request
+4. API Gateway validates token and extracts role, then passes `X-User-Role` header to Customer Service
+
+### Q: Why is there no password field in Customer Service?
+**A:** By design! Customer Service only manages **profile data** (name, phone, address, role). Authentication is handled by the Auth Service. This is called **separation of concerns** in microservices.
+
+### Q: Can I update my password in Customer Service?
+**A:** No. Update your password via the Auth Service. Customer Service only manages profile info.
+
+### Q: How do I know a user is an ADMIN, CUSTOMER, or RESTAURANT?
+**A:** The role is stored in the customer profile. Query the customer profile to see their role:
+
+```bash
+curl http://localhost:8003/customers/me \
+  -H "X-User-ID: user_123" \
+  -H "X-User-Email: john@example.com" \
+  -H "X-User-Role: customer"
+```
+
+Response shows:
+```json
+{
+  "id": "...",
+  "user_id": "user_123",
+  "email": "john@example.com",
+  "role": "customer",
+  ...
+}
+```
+
+### Q: Can a user change their role?
+**A:** No. Role is immutable after creation. It's set from the JWT token (managed by Auth Service). Only ADMIN can modify it via update endpoint.
+
+---
 
 ### Gateway Responsibilities
 
