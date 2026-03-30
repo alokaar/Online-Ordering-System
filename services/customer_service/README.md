@@ -60,6 +60,22 @@ customer_service/
 
 ## Setup & Running
 
+### Important: Headers in Development vs Production
+
+**In Swagger (Development):**
+You must manually add headers like `X-User-ID`, `X-User-Email`, `X-User-Role` to every request.
+
+**In Production (with API Gateway):**
+Users never see these headers. The flow is:
+1. User logs in via frontend → gets JWT token
+2. Frontend sends JWT in `Authorization` header
+3. **API Gateway validates JWT and automatically adds X-User-* headers**
+4. Customer Service receives the headers transparently
+
+**So don't worry**—real users just log in and use the app normally!
+
+---
+
 ### 1. Install Dependencies (if not already done)
 
 ```bash
@@ -96,6 +112,8 @@ uvicorn services.customer_service.main:app --port 8003 --reload
 ## API Endpoints
 
 ### Public Endpoints (Require JWT + Headers from Gateway)
+
+⚠️ **Note:** In **Swagger testing**, you manually add headers. In **production**, the API Gateway adds these automatically—users don't see any of this.
 
 #### GET `/health`
 
@@ -490,6 +508,19 @@ async def create_customer_via_gateway(
 
 To test the service locally without the Gateway, use curl with headers:
 
+#### Method 1: Testing with Swagger UI (Manual Headers)
+1. Go to http://localhost:8003/docs
+2. Open any endpoint (e.g., POST `/customers`)
+3. Click **"Try it out"**
+4. In the **Header section**, manually add:
+   - `X-User-ID: user123`
+   - `X-User-Email: user@example.com`
+   - `X-User-Role: admin`
+5. Fill request body and execute
+
+**This is just for testing!** Real users won't do this.
+
+#### Method 2: Testing with curl (Simulates Gateway)
 ```bash
 # Create customer (as ADMIN)
 curl -X POST http://localhost:8003/customers \
@@ -516,6 +547,29 @@ curl -X GET http://localhost:8003/customers \
   -H "X-User-Role: customer"
 # Response: 403 Forbidden
 ```
+
+#### Method 3: Production-like Testing (with API Gateway)
+
+When the API Gateway is running on port 8000:
+
+```bash
+# 1. Register user
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "testuser@example.com",
+    "password": "12345678",
+    "full_name": "Test User"
+  }'
+# Returns: access_token
+
+# 2. Get customer profile via Gateway
+curl -X GET http://localhost:8000/api/customers/me \
+  -H "Authorization: Bearer <access_token>"
+# Gateway extracts user info from JWT and passes headers automatically!
+```
+
+---
 
 ### Logging
 
