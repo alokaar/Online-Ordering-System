@@ -15,3 +15,8 @@ class DeliveryOut(BaseModel):
     driver_name: str
     location: str
     estimated_time: str
+
+class DeliveryUpdate(BaseModel):
+    status: Optional[str] = None
+    location: Optional[str] = None
+    estimated_time: Optional[str] = None
