@@ -207,3 +207,46 @@ async def change_password(
     )
 
     return {"message": "Password changed successfully"}
+
+
+# ============================================================================
+# INTERNAL SERVICE ENDPOINTS (Service-to-Service)
+# ============================================================================
+
+
+@app.get("/internal/users/{user_id}", tags=["Internal"])
+async def check_user_exists(user_id: str, db: Annotated[AsyncIOMotorDatabase, Depends(get_database)]) -> dict:
+    """
+    Internal endpoint: Check if user exists by ID.
+    
+    **Access:** Other microservices only (no auth required).
+    - Used by Feedback Service to validate user before accepting feedback
+    - Used by Order Service to verify customer exists
+    
+    Returns 200 if user exists, 404 if not.
+    """
+    logger.info(f"Checking if user {user_id} exists...")
+    
+    try:
+        # Try to convert to ObjectId and query
+        obj_id = ObjectId(user_id)
+        logger.info(f"Converted user_id to ObjectId: {obj_id}")
+        
+        user = await db.users.find_one({"_id": obj_id})
+        
+        if user:
+            logger.info(f"✓ User {user_id} found in database")
+            return {
+                "user_id": str(user["_id"]),
+                "email": user["email"],
+                "exists": True,
+            }
+        else:
+            logger.warning(f"✗ User {user_id} not found in database")
+    except Exception as e:
+        logger.error(f"✗ Error checking user {user_id}: {type(e).__name__}: {e}")
+    
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found",
+    )
