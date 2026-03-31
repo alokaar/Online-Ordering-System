@@ -32,6 +32,16 @@ class OrderCreate(BaseModel):
     payment_method: PaymentMethod = PaymentMethod.CASH
 
 
+class OrderUpdateDetails(BaseModel):
+    full_name: str | None = Field(default=None, min_length=2, max_length=100)
+    email: str | None = Field(default=None, min_length=5, max_length=100)
+    delivery_address: str | None = Field(default=None, min_length=10, max_length=500)
+    phone_number: str | None = Field(default=None, min_length=10, max_length=20)
+    receiver_details: str | None = Field(default=None, max_length=500)
+    special_ticket_instructions: str | None = Field(default=None, max_length=500)
+    payment_method: PaymentMethod | None = None
+
+
 class OrderOut(BaseModel):
     id: str
     user_id: str
