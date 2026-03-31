@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # Service Configuration
     service_name: str = "Auth Service"
     service_port: int = 8000
+    customer_service_url: str = "http://localhost:8003"
 
     def get_mongodb_connection_uri(self) -> str:
         """Build Atlas SRV URI with RFC 3986–safe credentials, or use mongodb_uri for localhost."""
