@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = os.getenv("DB_NAME", "online_food_ordering")
-COLLECTION_NAME = os.getenv("RESTAURANT_COLLECTION", "restaurants")
+MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI")
+DB_NAME = os.getenv("DB_NAME", "food_ordering")
+COLLECTION_NAME = os.getenv("COLLECTION_NAME", "restaurants")
 
 if not MONGO_URI:
-    raise ValueError("MONGO_URI is not set in the .env file")
+    raise ValueError("MONGO_URI or MONGODB_URI is not set in the .env file")
 
 client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
