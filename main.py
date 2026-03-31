@@ -7,9 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import is_database_connected as app_db_connected
 from app.database import lifespan as app_lifespan
-from services.menu_service.database import is_database_connected as menu_db_connected
-from services.menu_service.database import lifespan as menu_lifespan
-from services.menu_service.menu import router as menu_router
+from menu_service.database import is_database_connected as menu_db_connected
+from menu_service.database import lifespan as menu_lifespan
+from menu_service.menu import router as menu_router
 
 
 @asynccontextmanager
@@ -59,7 +59,7 @@ def root() -> dict:
             "auth": "http://localhost:8000",
             "customers": "http://localhost:8003",
             "menu": "http://localhost:8007",
-            "orders": "http://localhost:8008",
+            "orders": "http://localhost:8004",
             "restaurants": "http://localhost:8006",
         },
         "docs": "/docs"

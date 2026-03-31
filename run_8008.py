@@ -1,4 +1,4 @@
 import uvicorn
 
 if __name__ == "__main__":
-    uvicorn.run("services.order_service.main:app", host="0.0.0.0", port=8008, reload=True)
+    uvicorn.run("order_service.main:app", host="0.0.0.0", port=8008, reload=True)
