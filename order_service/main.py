@@ -19,7 +19,7 @@ async def combined_lifespan(fastapi_app: FastAPI):
 
 
 app = FastAPI(
-    title="Order & Storefront Service",
+    title="Online Order Service",
     description="Microservice for cart, menu fetching, and order processing",
     version="0.1.0",
     lifespan=combined_lifespan,
