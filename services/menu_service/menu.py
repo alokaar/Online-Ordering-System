@@ -30,15 +30,8 @@ async def create_menu_item(
     """Create a new menu item (admin only - for now, any authenticated user can create)."""
     from datetime import datetime, timezone
 
-    doc = {
-        "name": body.name,
-        "description": body.description,
-        "price": body.price,
-        "category": body.category,
-        "image_url": body.image_url,
-        "is_available": body.is_available,
-        "created_at": datetime.now(timezone.utc),
-    }
+    doc = body.model_dump(mode='json')
+    doc["created_at"] = datetime.now(timezone.utc)
     result = await db.menu_items.insert_one(doc)
     created = await db.menu_items.find_one({"_id": result.inserted_id})
     if created is None:
@@ -49,13 +42,10 @@ async def create_menu_item(
 @router.get("/", response_model=list[MenuItemOut])
 async def get_menu_items(
     db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-    category: MenuCategory | None = None,
-    available_only: bool = True,
+    available_only: bool = False,
 ) -> list[MenuItemOut]:
-    """Get all menu items, optionally filtered by category."""
+    """Get all menu items."""
     query = {}
-    if category:
-        query["category"] = category.value
     if available_only:
         query["is_available"] = True
 
@@ -68,7 +58,7 @@ async def get_menu_items(
 async def get_menu_items_by_category(
     category: MenuCategory,
     db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-    available_only: bool = True,
+    available_only: bool = False,
 ) -> list[MenuItemOut]:
     """Get all menu items under a specific category."""
     query = {"category": category.value}
@@ -113,7 +103,7 @@ async def update_menu_item(
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid item ID")
 
-    update_data = {k: v for k, v in body.model_dump().items() if v is not None}
+    update_data = body.model_dump(mode='json', exclude_unset=True)
     if not update_data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
 

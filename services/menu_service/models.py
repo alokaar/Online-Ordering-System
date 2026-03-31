@@ -13,7 +13,6 @@ class MenuCategory(str, Enum):
 
 
 class MenuItemCreate(BaseModel):
-    model_config = ConfigDict(use_enum_values=True)
 
     name: str = Field(..., min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=500)
@@ -24,7 +23,6 @@ class MenuItemCreate(BaseModel):
 
 
 class MenuItemUpdate(BaseModel):
-    model_config = ConfigDict(use_enum_values=True)
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     description: str | None = Field(default=None, max_length=500)
@@ -35,13 +33,13 @@ class MenuItemUpdate(BaseModel):
 
 
 class MenuItemOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
     name: str
     description: str | None
     price: float
-    category: MenuCategory
+    category: str
     image_url: str | None
     is_available: bool
     created_at: datetime
