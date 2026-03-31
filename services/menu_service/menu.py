@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .database import get_database
-from .models import MenuItemCreate, MenuItemOut, MenuItemUpdate
+from .models import MenuCategory, MenuItemCreate, MenuItemOut, MenuItemUpdate
 
 router = APIRouter()
 
@@ -49,13 +49,29 @@ async def create_menu_item(
 @router.get("/", response_model=list[MenuItemOut])
 async def get_menu_items(
     db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-    category: str | None = None,
+    category: MenuCategory | None = None,
     available_only: bool = True,
 ) -> list[MenuItemOut]:
     """Get all menu items, optionally filtered by category."""
     query = {}
     if category:
-        query["category"] = category
+        query["category"] = category.value
+    if available_only:
+        query["is_available"] = True
+
+    cursor = db.menu_items.find(query).sort("created_at", -1)
+    items = await cursor.to_list(length=None)
+    return [menu_item_doc_to_out(item) for item in items]
+
+
+@router.get("/category/{category}", response_model=list[MenuItemOut])
+async def get_menu_items_by_category(
+    category: MenuCategory,
+    db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
+    available_only: bool = True,
+) -> list[MenuItemOut]:
+    """Get all menu items under a specific category."""
+    query = {"category": category.value}
     if available_only:
         query["is_available"] = True
 
