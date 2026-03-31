@@ -1,12 +1,13 @@
 from typing import Annotated
 
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.database import get_database
-from app.schemas import MenuItemCreate, MenuItemOut, MenuItemUpdate
+from ..database import get_database
+from ..models import MenuItemCreate, MenuItemOut, MenuItemUpdate
 
-router = APIRouter()
+router = APIRouter(prefix="/menu", tags=["Menu"])
 
 
 def menu_item_doc_to_out(doc: dict) -> MenuItemOut:
@@ -27,7 +28,6 @@ async def create_menu_item(
     body: MenuItemCreate,
     db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> MenuItemOut:
-    """Create a new menu item (admin only - for now, any authenticated user can create)."""
     from datetime import datetime, timezone
 
     doc = {
@@ -39,6 +39,7 @@ async def create_menu_item(
         "is_available": body.is_available,
         "created_at": datetime.now(timezone.utc),
     }
+
     result = await db.menu_items.insert_one(doc)
     created = await db.menu_items.find_one({"_id": result.inserted_id})
     if created is None:
@@ -52,7 +53,6 @@ async def get_menu_items(
     category: str | None = None,
     available_only: bool = True,
 ) -> list[MenuItemOut]:
-    """Get all menu items, optionally filtered by category."""
     query = {}
     if category:
         query["category"] = category
@@ -65,13 +65,7 @@ async def get_menu_items(
 
 
 @router.get("/{item_id}", response_model=MenuItemOut)
-async def get_menu_item(
-    item_id: str,
-    db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-) -> MenuItemOut:
-    """Get a specific menu item by ID."""
-    from bson import ObjectId
-
+async def get_menu_item(item_id: str, db: Annotated[AsyncIOMotorDatabase, Depends(get_database)]) -> MenuItemOut:
     try:
         obj_id = ObjectId(item_id)
     except Exception:
@@ -89,9 +83,6 @@ async def update_menu_item(
     body: MenuItemUpdate,
     db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> MenuItemOut:
-    """Update a menu item."""
-    from bson import ObjectId
-
     try:
         obj_id = ObjectId(item_id)
     except Exception:
@@ -108,17 +99,12 @@ async def update_menu_item(
     updated = await db.menu_items.find_one({"_id": obj_id})
     if updated is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Update failed")
+
     return menu_item_doc_to_out(updated)
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_menu_item(
-    item_id: str,
-    db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
-) -> None:
-    """Delete a menu item."""
-    from bson import ObjectId
-
+async def delete_menu_item(item_id: str, db: Annotated[AsyncIOMotorDatabase, Depends(get_database)]) -> None:
     try:
         obj_id = ObjectId(item_id)
     except Exception:

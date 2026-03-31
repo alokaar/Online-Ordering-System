@@ -4,13 +4,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import is_database_connected, lifespan
-from app.routers import auth as auth_router
 from app.routers import menu as menu_router
 from app.routers import orders as orders_router
 
 app = FastAPI(
     title="Online Food Ordering API",
-    description="MVP backend — auth with MongoDB + JWT. Use **Authorize** in Swagger after `/auth/login`.",
+    description="MVP backend.",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -24,7 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
 app.include_router(menu_router.router, prefix="/menu", tags=["Menu"])
 app.include_router(orders_router.router, prefix="/orders", tags=["Orders"])
 
@@ -35,4 +33,10 @@ def health() -> dict[str, str]:
         "status": "ok",
         "database": "connected" if is_database_connected() else "disconnected",
     }
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/docs")
 
