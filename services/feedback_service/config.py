@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     mongodb_uri: str = "mongodb://localhost:27017/"
     mongodb_db_name: str = "food_ordering"
     
-    # Service Integration URLs (will be used when order_service and restaurant_service are ready)
+    # Service Integration URLs
+    auth_service_url: str = "http://localhost:8000"  # Auth Service port
+    customer_service_url: str = "http://localhost:8003"  # Customer Service port
     order_service_url: str = "http://localhost:8005"  # Order Service port (placeholder)
     restaurant_service_url: str = "http://localhost:8006"  # Restaurant Service port (placeholder)
     

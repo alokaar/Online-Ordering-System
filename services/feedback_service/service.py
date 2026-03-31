@@ -1,9 +1,11 @@
 """Feedback Service Business Logic & RBAC"""
+import httpx
 import logging
 from typing import Annotated, Optional
 
 from fastapi import Depends, HTTPException, Header, status
 
+from .config import settings
 from .database import get_database, MockDatabase
 from .models import FeedbackCreate, FeedbackList, FeedbackOut, RBACContext, UserRole
 
@@ -16,8 +18,79 @@ class FeedbackService:
     def __init__(self, db: MockDatabase):
         self.db = db
     
+    async def validate_user_exists(self, user_id: str, email: str) -> tuple[bool, str]:
+        """Verify user exists in Auth Service AND email matches.
+        Returns: (is_valid, error_message)
+        """
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                # Call auth service internal endpoint to verify user
+                logger.info(f"Validating user {user_id} with email {email} in auth service...")
+                response = await client.get(
+                    f"{settings.auth_service_url}/internal/users/{user_id}",
+                    headers={"X-User-Email": email}
+                )
+                logger.info(f"Auth service response: {response.status_code}")
+                
+                if response.status_code == 200:
+                    # Parse response and check if email matches
+                    user_data = response.json()
+                    returned_email = user_data.get("email", "")
+                    
+                    logger.info(f"User email from DB: {returned_email}, Provided email: {email}")
+                    
+                    # Email must match exactly
+                    if returned_email.lower() == email.lower():
+                        logger.info(f"✓ User {user_id} validated successfully with matching email")
+                        return (True, "")
+                    else:
+                        logger.warning(f"✗ Email mismatch! DB: {returned_email}, Provided: {email}")
+                        return (False, f"Email mismatch. You provided: {email}, but user {user_id} is registered with: {returned_email}")
+                else:
+                    logger.warning(f"✗ Auth service returned {response.status_code}: {response.text}")
+                    return (False, "User ID not found in the system. Please register first.")
+        except Exception as e:
+            logger.error(f"✗ Failed to validate user in auth service: {type(e).__name__}: {e}")
+            return (False, f"Error validating user: {str(e)}")
+    
+    async def validate_customer_profile_exists(self, user_id: str) -> bool:
+        """Verify customer profile exists in Customer Service"""
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                # Call customer service internal endpoint to verify customer profile
+                logger.info(f"Validating customer profile {user_id} in customer service...")
+                response = await client.get(
+                    f"{settings.customer_service_url}/internal/customers/{user_id}"
+                )
+                logger.info(f"Customer service response: {response.status_code}")
+                if response.status_code == 200:
+                    logger.info(f"✓ Customer profile {user_id} validated successfully")
+                    return True
+                else:
+                    logger.warning(f"✗ Customer service returned {response.status_code}: {response.text}")
+                    return False
+        except Exception as e:
+            logger.error(f"✗ Failed to validate customer profile in customer service: {type(e).__name__}: {e}")
+            return False
+    
     async def create_feedback(self, feedback_data: FeedbackCreate) -> FeedbackOut:
         """Create new feedback for an order"""
+        # Validate user exists in auth service AND email matches
+        user_valid, user_error = await self.validate_user_exists(feedback_data.user_id, feedback_data.email)
+        if not user_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=user_error,
+            )
+        
+        # Validate customer profile exists in customer service
+        customer_exists = await self.validate_customer_profile_exists(feedback_data.user_id)
+        if not customer_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Customer profile not found. Please contact support.",
+            )
+        
         return await self.db.create_feedback(feedback_data)
     
     async def get_feedbacks_for_restaurant(self, restaurant_id: str) -> FeedbackList:
