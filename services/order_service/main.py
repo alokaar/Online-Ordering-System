@@ -9,16 +9,13 @@ from .config import settings
 from .database import lifespan as order_lifespan
 from .orders import router as orders_router
 from app.database import lifespan as app_lifespan
-from services.menu_service.database import lifespan as menu_lifespan
-from services.menu_service.menu import router as menu_router
 
 @asynccontextmanager
 async def combined_lifespan(fastapi_app: FastAPI):
-    # Enable db connections for both Menu and Orders seamlessly
+    # Enable db connections strictly orchestrating the Order service
     async with app_lifespan(fastapi_app):
-        async with menu_lifespan(fastapi_app):
-            async with order_lifespan(fastapi_app):
-                yield
+        async with order_lifespan(fastapi_app):
+            yield
 
 
 app = FastAPI(
@@ -38,7 +35,6 @@ app.add_middleware(
 )
 
 app.include_router(orders_router, prefix="", tags=["Orders"])
-app.include_router(menu_router, prefix="/menu", tags=["Menu View"])
 
 
 @app.get("/health", tags=["System"])

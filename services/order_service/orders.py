@@ -43,13 +43,22 @@ async def get_cart(
     if cart is None:
         return CartOut(items=[], total=0.0)
 
-    # Ensure all cart items have names
+    # Ensure all cart items have names natively using the microservice boundary
     items_with_names = []
     for item in cart["items"]:
         if "name" not in item or not item["name"]:
-            # Fetch name from menu_items if missing
-            menu_item = await db.menu_items.find_one({"_id": ObjectId(item["menu_item_id"])})
-            item_name = menu_item["name"] if menu_item else f"Item {item['menu_item_id']}"
+            # Fetch name dynamically from Menu Service API via HTTP
+            import httpx
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(f"http://localhost:8007/menu/{item['menu_item_id']}", timeout=3.0)
+                    if resp.status_code == 200:
+                        item_name = resp.json().get("name", f"Item {item['menu_item_id']}")
+                    else:
+                        item_name = f"Item {item['menu_item_id']}"
+            except Exception:
+                item_name = f"Item {item['menu_item_id']}"
+                
             item_copy = item.copy()
             item_copy["name"] = item_name
             items_with_names.append(item_copy)
@@ -76,10 +85,18 @@ async def add_to_cart(
     from bson import ObjectId
     from datetime import datetime, timezone
 
-    # Verify menu item exists and is available
-    menu_item = await db.menu_items.find_one({"_id": ObjectId(item.menu_item_id)})
-    if menu_item is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+    # Verify menu item exists and is available using the actual Menu Service HTTP API!
+    import httpx
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"http://localhost:8007/menu/{item.menu_item_id}", timeout=5.0)
+            if resp.status_code == 404:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found on Menu Service")
+            resp.raise_for_status()
+            menu_item = resp.json()
+    except httpx.HTTPError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Menu API is unreachable")
+
     if not menu_item.get("is_available", True):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Menu item not available")
 
