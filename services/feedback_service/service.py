@@ -1,0 +1,109 @@
+"""Feedback Service Business Logic & RBAC"""
+import logging
+from typing import Annotated, Optional
+
+from fastapi import Depends, HTTPException, Header, status
+
+from .database import get_database, MockDatabase
+from .models import FeedbackCreate, FeedbackList, FeedbackOut, RBACContext, UserRole
+
+logger = logging.getLogger(__name__)
+
+
+class FeedbackService:
+    """Business logic for feedback operations"""
+    
+    def __init__(self, db: MockDatabase):
+        self.db = db
+    
+    async def create_feedback(self, feedback_data: FeedbackCreate) -> FeedbackOut:
+        """Create new feedback for an order"""
+        return await self.db.create_feedback(feedback_data)
+    
+    async def get_feedbacks_for_restaurant(self, restaurant_id: str) -> FeedbackList:
+        """Get all feedbacks for a restaurant with average rating"""
+        feedbacks = await self.db.get_feedbacks_by_restaurant(restaurant_id)
+        average_rating = await self.db.get_average_rating(restaurant_id)
+        
+        return FeedbackList(
+            restaurant_id=restaurant_id,
+            feedbacks=feedbacks,
+            total=len(feedbacks),
+            average_rating=average_rating,
+        )
+    
+    async def get_feedback_by_id(self, feedback_id: str) -> Optional[FeedbackOut]:
+        """Get feedback by ID"""
+        return await self.db.get_feedback_by_id(feedback_id)
+    
+    async def delete_feedback(self, feedback_id: str) -> bool:
+        """Delete feedback (soft delete)"""
+        return await self.db.delete_feedback(feedback_id)
+    
+    async def update_feedback(self, feedback_id: str, rating: int, review_text: str) -> Optional[FeedbackOut]:
+        """Update feedback rating and review text"""
+        return await self.db.update_feedback(feedback_id, rating, review_text)
+
+
+class RBACService:
+    """Role-Based Access Control for Feedback Service"""
+    
+    def __init__(self, role: UserRole):
+        self.role = role
+    
+    def can_create_feedback(self) -> bool:
+        """Check if user can create feedback"""
+        # Only customers can create feedback
+        return self.role == UserRole.CUSTOMER
+    
+    def can_delete_feedback(self) -> bool:
+        """Check if user can delete feedback"""
+        # Only admins can delete feedback
+        return self.role == UserRole.ADMIN
+    
+    def can_view_all_feedbacks(self) -> bool:
+        """Check if user can view all feedbacks"""
+        # Admins and restaurants can view all, customers can view any restaurant's
+        return self.role in [UserRole.ADMIN, UserRole.RESTAURANT]
+
+
+# ============================================================================
+# DEPENDENCY INJECTION
+# ============================================================================
+
+
+async def get_rbac_context(
+    x_user_id: Annotated[Optional[str], Header()] = None,
+    x_user_email: Annotated[Optional[str], Header()] = None,
+    x_user_role: Annotated[Optional[str], Header()] = None,
+) -> RBACContext:
+    """
+    Extract RBAC context from request headers (set by API Gateway).
+    Headers: X-User-ID, X-User-Email, X-User-Role
+    """
+    if not x_user_id or not x_user_email or not x_user_role:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication headers from Gateway",
+        )
+    
+    try:
+        role = UserRole(x_user_role.lower())
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role: {x_user_role}",
+        )
+    
+    return RBACContext(
+        user_id=x_user_id,
+        email=x_user_email,
+        role=role,
+    )
+
+
+async def get_feedback_service(
+    db: Annotated[MockDatabase, Depends(get_database)]
+) -> FeedbackService:
+    """Dependency for feedback service"""
+    return FeedbackService(db)
