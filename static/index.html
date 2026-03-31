@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Food Ordering</title>
+    <title>Food Ordering System</title>
     <style>
         * {
             margin: 0;
@@ -25,25 +25,41 @@
         }
 
         .header {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
         }
 
-        .auth-section {
-            display: flex;
-            gap: 20px;
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .auth-section, .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
             margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .auth-forms {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
         }
 
         .auth-form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             flex: 1;
+            max-width: 400px;
+        }
+
+        .auth-form h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #667eea;
         }
 
         .form-group {
@@ -54,148 +70,235 @@
             display: block;
             margin-bottom: 5px;
             font-weight: 500;
+            color: #555;
         }
 
         .form-group input {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .btn {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
-            transition: background 0.3s;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
         }
 
         .btn:hover {
-            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .btn-danger {
-            background: #dc3545;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
         }
 
         .btn-danger:hover {
-            background: #c82333;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 4px 15px rgba(81, 207, 102, 0.4);
         }
 
         .menu-section {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .menu-section h2 {
+            text-align: center;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            color: #667eea;
+            font-size: 2rem;
         }
 
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
-            margin-top: 20px;
+            margin-bottom: 30px;
         }
 
         .menu-item {
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
 
         .menu-item:hover {
             transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
 
         .menu-item img {
             width: 100%;
             height: 200px;
             object-fit: cover;
-            border-radius: 8px 8px 0 0;
         }
 
         .no-image {
             width: 100%;
             height: 200px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #666;
-            font-weight: 500;
-            border-radius: 8px 8px 0 0;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
         }
 
         .menu-item-content {
-            padding: 15px;
+            padding: 20px;
         }
 
         .menu-item h3 {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             color: #333;
+            font-size: 1.2rem;
         }
 
         .menu-item p {
             color: #666;
             font-size: 14px;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            line-height: 1.4;
         }
 
         .menu-item-price {
-            font-size: 18px;
+            font-size: 1.5rem;
             font-weight: bold;
             color: #667eea;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .add-to-cart {
-            width: 100%;
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
         .add-to-cart input {
             flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .add-to-cart input:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .cart-section {
             background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .cart-section h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #667eea;
+            font-size: 2rem;
         }
 
         .cart-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding: 15px 0;
             border-bottom: 1px solid #eee;
         }
 
-        .cart-total {
-            font-size: 20px;
-            font-weight: bold;
-            color: #667eea;
-            text-align: right;
-            margin-top: 20px;
+        .cart-item:last-child {
+            border-bottom: none;
         }
 
-        .checkout-form {
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item h4 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .cart-item-details {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quantity-controls input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .cart-total {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
             margin-top: 20px;
             padding: 20px;
-            background: #f8f9fa;
+            background: #f8f9ff;
+            border-radius: 10px;
+        }
+
+        .checkout-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9ff;
+            border-radius: 12px;
+        }
+
+        .checkout-section h3 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .user-info {
+            background: #e8f4fd;
+            padding: 15px;
             border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
         }
 
         .hidden {
@@ -203,9 +306,10 @@
         }
 
         .message {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            font-weight: 500;
         }
 
         .message.success {
@@ -222,87 +326,122 @@
 
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 40px;
+            color: #666;
         }
 
-        .user-info {
-            background: #e8f4fd;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .auth-forms {
+                flex-direction: column;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🍕 Online Food Ordering</h1>
-            <div id="user-info" class="user-info hidden">
-                <span id="user-email"></span>
-                <button id="logout-btn" class="btn btn-danger">Logout</button>
-            </div>
+            <h1>🍕 Food Ordering System</h1>
+            <p>Order delicious food from our menu</p>
         </div>
 
         <div id="auth-section" class="auth-section">
-            <div class="auth-form">
-                <h2>Login</h2>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="login-email">Email:</label>
-                        <input type="email" id="login-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">Password:</label>
-                        <input type="password" id="login-password" required>
-                    </div>
-                    <button type="submit" class="btn">Login</button>
-                </form>
-            </div>
+            <div class="auth-forms">
+                <div class="auth-form">
+                    <h2>Login</h2>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="login-email">Email:</label>
+                            <input type="email" id="login-email" required placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password:</label>
+                            <input type="password" id="login-password" required placeholder="Enter your password">
+                        </div>
+                        <button type="submit" class="btn">Login</button>
+                    </form>
+                </div>
 
-            <div class="auth-form">
-                <h2>Register</h2>
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="register-email">Email:</label>
-                        <input type="email" id="register-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password">Password:</label>
-                        <input type="password" id="register-password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="register-fullname">Full Name:</label>
-                        <input type="text" id="register-fullname">
-                    </div>
-                    <button type="submit" class="btn">Register</button>
-                </form>
+                <div class="auth-form">
+                    <h2>Register</h2>
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="register-email">Email:</label>
+                            <input type="email" id="register-email" required placeholder="Enter your email">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Password:</label>
+                            <input type="password" id="register-password" required placeholder="Create a password">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-fullname">Full Name:</label>
+                            <input type="text" id="register-fullname" placeholder="Enter your full name">
+                        </div>
+                        <button type="submit" class="btn">Register</button>
+                    </form>
+                </div>
             </div>
         </div>
 
         <div id="main-content" class="hidden">
+            <div id="user-info" class="user-info hidden">
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn btn-danger">Logout</button>
+            </div>
+
             <div class="menu-section">
                 <h2>🍽️ Our Menu</h2>
-                <div id="menu-loading" class="loading">Loading menu...</div>
+                <div id="menu-loading" class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading menu...
+                </div>
                 <div id="menu-grid" class="menu-grid"></div>
             </div>
 
             <div class="cart-section">
                 <h2>🛒 Your Cart</h2>
-                <div id="cart-loading" class="loading hidden">Loading cart...</div>
+                <div id="cart-loading" class="loading hidden">
+                    <div class="loading-spinner"></div>
+                    Loading cart...
+                </div>
                 <div id="cart-items"></div>
-                <div id="cart-total" class="cart-total"></div>
-                <div id="checkout-section" class="checkout-form hidden">
+                <div id="cart-total" class="cart-total hidden"></div>
+                <div id="checkout-section" class="checkout-section hidden">
                     <h3>Checkout</h3>
                     <form id="checkout-form">
                         <div class="form-group">
                             <label for="delivery-address">Delivery Address:</label>
-                            <input type="text" id="delivery-address" required placeholder="Enter your full address">
+                            <input type="text" id="delivery-address" required placeholder="Enter your full delivery address">
                         </div>
                         <div class="form-group">
                             <label for="phone-number">Phone Number:</label>
                             <input type="tel" id="phone-number" required placeholder="Enter your phone number">
                         </div>
-                        <button type="submit" class="btn">Place Order</button>
+                        <button type="submit" class="btn btn-success">Place Order</button>
                     </form>
                 </div>
             </div>
@@ -464,13 +603,13 @@
                         const itemDiv = document.createElement('div');
                         itemDiv.className = 'menu-item';
                         itemDiv.innerHTML = `
-                            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" loading="lazy">` : '<div class="no-image">No Image</div>'}
+                            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" loading="lazy">` : '<div class="no-image">🍽️</div>'}
                             <div class="menu-item-content">
                                 <h3>${item.name}</h3>
-                                <p>${item.description || 'No description'}</p>
+                                <p>${item.description || 'Delicious food item'}</p>
                                 <div class="menu-item-price">$${item.price.toFixed(2)}</div>
                                 <div class="add-to-cart">
-                                    <input type="number" min="1" value="1" id="qty-${item.id}">
+                                    <input type="number" min="1" value="1" id="qty-${item.id}" placeholder="Qty">
                                     <button class="btn" onclick="addToCart('${item.id}')">Add to Cart</button>
                                 </div>
                             </div>
@@ -478,15 +617,21 @@
                         menuGrid.appendChild(itemDiv);
                     });
                 } else {
-                    loading.textContent = 'Failed to load menu';
+                    loading.innerHTML = '<div style="color: #ff6b6b;">Failed to load menu. Please try again.</div>';
                 }
             } catch (error) {
-                loading.textContent = 'Network error loading menu';
+                loading.innerHTML = '<div style="color: #ff6b6b;">Network error loading menu.</div>';
             }
         }
 
         async function addToCart(itemId) {
-            const qty = document.getElementById(`qty-${itemId}`).value;
+            const qtyInput = document.getElementById(`qty-${itemId}`);
+            const qty = parseInt(qtyInput.value);
+
+            if (qty < 1) {
+                showMessage('Quantity must be at least 1', 'error');
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/orders/cart/add`, {
@@ -497,13 +642,14 @@
                     },
                     body: JSON.stringify({
                         menu_item_id: itemId,
-                        quantity: parseInt(qty)
+                        quantity: qty
                     })
                 });
 
                 if (response.ok) {
                     const cart = await response.json();
-                    showMessage('Item added to cart!', 'success');
+                    showMessage(`${qty} item(s) added to cart!`, 'success');
+                    qtyInput.value = 1; // Reset quantity
                     loadCart();
                 } else {
                     const error = await response.json();
@@ -535,39 +681,73 @@
                     loading.classList.add('hidden');
 
                     if (cart.items.length === 0) {
-                        cartItems.innerHTML = '<p>Your cart is empty</p>';
-                        cartTotal.textContent = '';
+                        cartItems.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">Your cart is empty. Add some delicious items from our menu!</p>';
+                        cartTotal.classList.add('hidden');
                         checkoutSection.classList.add('hidden');
                     } else {
                         cart.items.forEach(item => {
                             const itemDiv = document.createElement('div');
                             itemDiv.className = 'cart-item';
                             itemDiv.innerHTML = `
-                                <div>
-                                    <strong>${item.name}</strong>
-                                    <br>
-                                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
-                                        <label>Qty:</label>
-                                        <input type="number" min="1" value="${item.quantity}" id="cart-qty-${item.menu_item_id}" style="width: 60px; padding: 4px;">
-                                        <button class="btn" onclick="updateCartItem('${item.menu_item_id}')" style="padding: 4px 8px; font-size: 12px;">Update</button>
+                                <div class="cart-item-info">
+                                    <h4>${item.name}</h4>
+                                    <div class="cart-item-details">
+                                        <div class="quantity-controls">
+                                            <label>Qty:</label>
+                                            <input type="number" min="1" value="${item.quantity}" id="cart-qty-${item.menu_item_id}" onchange="updateCartItem('${item.menu_item_id}')">
+                                        </div>
+                                        <span style="font-weight: bold; color: #667eea;">$${(item.price * item.quantity).toFixed(2)}</span>
+                                        <button class="btn btn-danger" onclick="removeFromCart('${item.menu_item_id}')" style="padding: 6px 12px; font-size: 12px;">Remove</button>
                                     </div>
-                                </div>
-                                <div>
-                                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
-                                    <button class="btn btn-danger" onclick="removeFromCart('${item.menu_item_id}')" style="margin-left: 10px;">Remove</button>
                                 </div>
                             `;
                             cartItems.appendChild(itemDiv);
                         });
 
-                        cartTotal.textContent = `Total: $${cart.total.toFixed(2)}`;
+                        cartTotal.innerHTML = `<div>Total: $${cart.total.toFixed(2)}</div>`;
+                        cartTotal.classList.remove('hidden');
                         checkoutSection.classList.remove('hidden');
                     }
                 } else {
-                    loading.textContent = 'Failed to load cart';
+                    loading.innerHTML = '<div style="color: #ff6b6b;">Failed to load cart.</div>';
                 }
             } catch (error) {
-                loading.textContent = 'Network error loading cart';
+                loading.innerHTML = '<div style="color: #ff6b6b;">Network error loading cart.</div>';
+            }
+        }
+
+        async function updateCartItem(itemId) {
+            const qtyInput = document.getElementById(`cart-qty-${itemId}`);
+            const qty = parseInt(qtyInput.value);
+
+            if (qty < 1) {
+                showMessage('Quantity must be at least 1', 'error');
+                qtyInput.value = 1;
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/orders/cart/update/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        quantity: qty
+                    })
+                });
+
+                if (response.ok) {
+                    const cart = await response.json();
+                    showMessage('Cart updated!', 'success');
+                    loadCart();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.detail || 'Failed to update item', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error', 'error');
             }
         }
 
@@ -593,34 +773,6 @@
             }
         }
 
-        async function updateCartItem(itemId) {
-            const qty = document.getElementById(`cart-qty-${itemId}`).value;
-
-            try {
-                const response = await fetch(`${API_BASE}/orders/cart/update/${itemId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({
-                        quantity: parseInt(qty)
-                    })
-                });
-
-                if (response.ok) {
-                    const cart = await response.json();
-                    showMessage('Cart updated!', 'success');
-                    loadCart();
-                } else {
-                    const error = await response.json();
-                    showMessage(error.detail || 'Failed to update item', 'error');
-                }
-            } catch (error) {
-                showMessage('Network error', 'error');
-            }
-        }
-
         function showAuthSection() {
             authSection.classList.remove('hidden');
             mainContent.classList.add('hidden');
@@ -631,8 +783,7 @@
             authSection.classList.add('hidden');
             mainContent.classList.remove('hidden');
             userInfo.classList.remove('hidden');
-            // In a real app, you'd decode the JWT to get user info
-            userEmail.textContent = 'Logged in';
+            userEmail.textContent = 'Welcome! You are logged in.';
         }
 
         function showMessage(text, type) {

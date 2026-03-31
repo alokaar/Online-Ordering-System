@@ -35,22 +35,4 @@ def health() -> dict[str, str]:
         "status": "ok",
         "database": "connected" if is_database_connected() else "disconnected",
     }
-def health() -> dict[str, str]:
-    return {
-        "status": "ok",
-        "message": "API Gateway is running",
-    }
-def root() -> dict[str, str]:
-    return {
-        "message": "Food Ordering API Gateway",
-        "version": "0.1.0",
-        "services": {
-            "auth": "http://localhost:8000",
-            "customers": "http://localhost:8003",
-            "menu": "http://localhost:8004",
-            "orders": "http://localhost:8005",
-            "restaurants": "http://localhost:8006",
-        },
-        "docs": "/docs"
-    }
 

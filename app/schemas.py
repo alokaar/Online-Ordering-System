@@ -23,6 +23,12 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class ChangePassword(BaseModel):
+    """Change password request"""
+    current_password: str = Field(..., description="Your current password")
+    new_password: str = Field(min_length=8, max_length=128, description="New password (min 8 chars)")
+
+
 # Menu Item Schemas
 class MenuItemCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
