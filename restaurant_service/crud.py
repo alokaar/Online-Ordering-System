@@ -1,5 +1,5 @@
 from uuid import uuid4
-from database import restaurant_collection
+from .database import restaurant_collection
 
 
 def serialize_restaurant(doc):

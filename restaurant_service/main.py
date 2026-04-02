@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from schemas import RestaurantCreate, RestaurantUpdate, MenuItemCreate
-from crud import (
+from .schemas import RestaurantCreate, RestaurantUpdate, MenuItemCreate
+from .crud import (
     create_restaurant,
     get_all_restaurants,
     get_restaurant_by_id,
