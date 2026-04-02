@@ -60,7 +60,7 @@ def root() -> dict:
             "customers": "http://localhost:8003",
             "menu": "http://localhost:8007",
             "orders": "http://localhost:8002",
-            "restaurants": "http://localhost:8006",
+            "restaurants": "http://localhost:8005",
         },
         "docs": "/docs"
     }
