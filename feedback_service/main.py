@@ -13,7 +13,8 @@ from .config import settings
 from .database import get_database, close_database, init_real_database
 from .models import (
     FeedbackCreate,
-    FeedbackCreateRequest,
+    FeedbackCreateOrderRequest,
+    FeedbackCreateRestaurantRequest,
     FeedbackList,
     FeedbackOut,
     FeedbackUpdateRequest,
@@ -107,7 +108,7 @@ def root() -> dict[str, str]:
     tags=["Feedback"],
 )
 async def create_feedback(
-    feedback_request: FeedbackCreateRequest,
+    feedback_request: FeedbackCreateOrderRequest,
     rbac_context: Annotated[RBACContext, Depends(get_rbac_context)],
     service: Annotated[FeedbackService, Depends(get_feedback_service)],
 ) -> FeedbackOut:
@@ -117,7 +118,6 @@ async def create_feedback(
     **Access:** CUSTOMER only
     
     - **order_id**: ID from Order Service (required)
-    - **restaurant_id**: ID from Restaurant Service (required)
     - **rating**: 1-5 stars
     - **review_text**: 10-500 characters
     """
@@ -132,7 +132,7 @@ async def create_feedback(
     # Convert request to internal model and add user info from headers
     feedback_data = FeedbackCreate(
         order_id=feedback_request.order_id,
-        restaurant_id=feedback_request.restaurant_id,
+        restaurant_id=None,  # restaurant-feedback is a separate endpoint
         rating=feedback_request.rating,
         review_text=feedback_request.review_text,
         user_id=rbac_context.user_id,
@@ -140,7 +140,50 @@ async def create_feedback(
     )
     
     logger.info(
-        f"Creating feedback | user={rbac_context.user_id} | order={feedback_data.order_id} | restaurant={feedback_data.restaurant_id}"
+        f"Creating order feedback | user={rbac_context.user_id} | order={feedback_data.order_id}"
+    )
+    return await service.create_feedback(feedback_data)
+
+
+@app.post(
+    "/feedbacks/restaurant/{restaurant_id}",
+    response_model=FeedbackOut,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Restaurant Feedback"],
+)
+async def create_restaurant_feedback(
+    restaurant_id: str,
+    feedback_request: FeedbackCreateRestaurantRequest,
+    rbac_context: Annotated[RBACContext, Depends(get_rbac_context)],
+    service: Annotated[FeedbackService, Depends(get_feedback_service)],
+) -> FeedbackOut:
+    """
+    Create new feedback for a restaurant (not tied to an order).
+    
+    **Access:** CUSTOMER only
+    
+    - **restaurant_id**: Restaurant ID from Restaurant Service
+    - **rating**: 1-5 stars
+    - **review_text**: 10-500 characters
+    """
+    rbac = RBACService(rbac_context.role)
+    if not rbac.can_create_feedback():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only customers can create feedback",
+        )
+
+    feedback_data = FeedbackCreate(
+        order_id=None,  # restaurant-feedback is separate from order-feedback
+        restaurant_id=restaurant_id,
+        rating=feedback_request.rating,
+        review_text=feedback_request.review_text,
+        user_id=rbac_context.user_id,
+        email=rbac_context.email,
+    )
+
+    logger.info(
+        f"Creating restaurant feedback | user={rbac_context.user_id} | restaurant={feedback_data.restaurant_id}"
     )
     return await service.create_feedback(feedback_data)
 

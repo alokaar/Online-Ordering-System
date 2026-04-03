@@ -59,7 +59,6 @@ Request body:
 ```json
 {
   "order_id": "order_001",
-  "restaurant_id": "rest_001",
   "rating": 5,
   "review_text": "Excellent food and great service! Highly recommended."
 }
@@ -72,7 +71,7 @@ Response (201 Created):
   "user_id": "user_123",
   "email": "customer@example.com",
   "order_id": "order_001",
-  "restaurant_id": "rest_001",
+  "restaurant_id": null,
   "rating": 5,
   "review_text": "Excellent food and great service! Highly recommended.",
   "created_at": "2026-03-31T10:00:00",
@@ -83,6 +82,25 @@ Response (201 Created):
 
 ---
 
+#### POST `/feedbacks/restaurant/{restaurant_id}` - Create Restaurant Feedback
+**Access:** CUSTOMERS only
+
+Request headers (from API Gateway):
+```
+X-User-ID: user_123
+X-User-Email: customer@example.com
+X-User-Role: customer
+```
+
+Request body:
+```json
+{
+  "rating": 5,
+  "review_text": "Great food and great service!"
+}
+```
+
+---
 #### GET `/feedbacks/restaurant/{restaurant_id}` - Get Restaurant Reviews
 **Access:** All authenticated users
 
@@ -310,9 +328,19 @@ curl -X POST http://localhost:8004/feedbacks \
   -H "Content-Type: application/json" \
   -d '{
     "order_id": "order_123",
-    "restaurant_id": "rest_001",
     "rating": 4,
     "review_text": "Good quality food with reasonable pricing and nice service staff."
+  }'
+
+# Create restaurant feedback (simulate CUSTOMER via headers)
+curl -X POST http://localhost:8004/feedbacks/restaurant/rest_001 \
+  -H "X-User-ID: user_123" \
+  -H "X-User-Email: customer@example.com" \
+  -H "X-User-Role: customer" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rating": 5,
+    "review_text": "Great restaurant experience!"
   }'
 
 # Get reviews (CUSTOMER accessing)

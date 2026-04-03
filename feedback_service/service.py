@@ -90,8 +90,57 @@ class FeedbackService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Customer profile not found. Please contact support.",
             )
-        
+
+        # If this is order-feedback, ensure the order belongs to the authenticated user.
+        if feedback_data.order_id:
+            await self.validate_order_ownership(feedback_data.order_id, feedback_data.user_id)
+
         return await self.db.create_feedback(feedback_data)
+
+    async def validate_order_ownership(self, order_id: str, user_id: str) -> None:
+        """
+        Ensure only the person who owns the order can submit feedback for it.
+
+        Note: In mock-database mode we skip this validation because IDs won't exist
+        in the real Order Service.
+        """
+        if settings.use_mock_database:
+            return
+
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                response = await client.get(
+                    f"{settings.order_service_url}/orders/{order_id}",
+                    params={"user_id": user_id},
+                )
+        except Exception as e:
+            logger.error(f"✗ Order service unreachable: {type(e).__name__}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Order service is unreachable",
+            )
+
+        if response.status_code == 200:
+            order = response.json()
+            # Only allow feedback for orders that have been placed.
+            if order.get("status") != "order placed":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Feedback can only be submitted after the order is placed",
+                )
+            return
+
+        if response.status_code in (400, 404):
+            # Order Service uses both order_id and user_id to scope ownership.
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only submit feedback for your own placed orders",
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Failed to validate order ownership",
+        )
     
     async def get_feedbacks_for_restaurant(self, restaurant_id: str) -> FeedbackList:
         """Get all feedbacks for a restaurant with average rating"""

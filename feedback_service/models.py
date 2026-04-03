@@ -16,16 +16,22 @@ class UserRole(str, Enum):
 
 class FeedbackBase(BaseModel):
     """Base feedback model"""
-    order_id: str = Field(..., description="Order ID from Order Service")
-    restaurant_id: str = Field(..., description="Restaurant ID from Restaurant Service")
+    # For order-feedback we only have order_id; for restaurant-feedback we only have restaurant_id.
+    # We keep them in one model to simplify persistence and fetching.
+    order_id: str | None = Field(default=None, description="Order ID from Order Service")
+    restaurant_id: str | None = Field(default=None, description="Restaurant ID from Restaurant Service")
     rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
     review_text: str = Field(..., min_length=10, max_length=500, description="Review text (10-500 chars)")
 
 
-class FeedbackCreateRequest(BaseModel):
-    """Feedback creation request (user_id and email come from headers)"""
+class FeedbackCreateOrderRequest(BaseModel):
+    """Order-feedback creation request (restaurant_id comes from nowhere)."""
     order_id: str = Field(..., description="Order ID from Order Service")
-    restaurant_id: str = Field(..., description="Restaurant ID from Restaurant Service")
+    rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
+    review_text: str = Field(..., min_length=10, max_length=500, description="Review text (10-500 chars)")
+
+class FeedbackCreateRestaurantRequest(BaseModel):
+    """Restaurant-feedback creation request (order_id comes from nowhere)."""
     rating: int = Field(..., ge=1, le=5, description="Rating from 1 to 5 stars")
     review_text: str = Field(..., min_length=10, max_length=500, description="Review text (10-500 chars)")
 

@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Service Integration URLs
     auth_service_url: str = "http://localhost:8000"  # Auth Service port
     customer_service_url: str = "http://localhost:8003"  # Customer Service port
-    order_service_url: str = "http://localhost:8005"  # Order Service port (placeholder)
+    order_service_url: str = "http://localhost:8002"  # Order Service port
     restaurant_service_url: str = "http://localhost:8006"  # Restaurant Service port (placeholder)
     
     # Feature Flags
