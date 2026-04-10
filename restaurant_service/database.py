@@ -9,5 +9,7 @@ DB_NAME = os.getenv("DB_NAME", "food_ordering")
 COLLECTION_NAME = os.getenv("RESTAURANT_COLLECTION", "restaurants")
 
 client = MongoClient(MONGO_URI)
-db = client[DB_NAME]
+
+db_name = "restaurant_db"
+db = client[db_name]
 restaurant_collection = db[COLLECTION_NAME]

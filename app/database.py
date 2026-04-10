@@ -48,9 +48,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         await client.admin.command("ping")
         db_state.client = client
-        db_state.database = client[settings.mongodb_db_name]
+        
+        db_name = "app_db"
+        db_state.database = client[db_name]
         await db_state.database.users.create_index("email", unique=True)
-        logger.info("MongoDB connected (database=%s)", settings.mongodb_db_name)
+        logger.info("MongoDB connected (database=%s)", db_name)
     except Exception as e:
         logger.warning(
             "MongoDB not reachable — starting API without DB. Swagger still works; auth needs MongoDB. (%s)",

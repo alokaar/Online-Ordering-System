@@ -311,8 +311,10 @@ async def init_real_database() -> RealDatabase:
         await _mongo_client.admin.command("ping")
         logger.info("✓ MongoDB connected successfully")
         
+        db_name = "feedback_db"
+            
         # Get database and collection
-        db = _mongo_client[settings.mongodb_db_name]
+        db = _mongo_client[db_name]
         collection = db["feedbacks"]
         
         # Create index on restaurant_id for better query performance
@@ -320,7 +322,7 @@ async def init_real_database() -> RealDatabase:
         await collection.create_index([("created_at", DESCENDING)])
         
         _real_db = RealDatabase(collection)
-        logger.info(f"✓ Real database initialized (using '{settings.mongodb_db_name}' database)")
+        logger.info(f"✓ Real database initialized (using '{db_name}' database)")
         return _real_db
     
     except Exception as e:
