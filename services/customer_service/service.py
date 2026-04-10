@@ -8,6 +8,7 @@ from bson import ObjectId
 from fastapi import Depends, HTTPException, Header, status
 from jose import JWTError, jwt
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.errors import DuplicateKeyError
 
 from .config import settings
 from .database import get_database
@@ -138,7 +139,18 @@ class CustomerService:
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
         }
-        result = await self.collection.insert_one(doc)
+        try:
+            result = await self.collection.insert_one(doc)
+        except DuplicateKeyError as e:
+            if "email" in str(e):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already registered in customer profile",
+                )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Customer profile already exists for this user",
+            )
         
         # Verify the document was actually inserted
         created = await self.collection.find_one({"_id": result.inserted_id})

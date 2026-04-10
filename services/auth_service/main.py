@@ -11,7 +11,7 @@ from typing import Annotated
 
 import httpx
 from bson import ObjectId
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.errors import DuplicateKeyError
@@ -41,39 +41,47 @@ app = FastAPI(
 
 async def create_customer_profile_async(user_id: str, email: str, full_name: str | None) -> bool:
     """
-    Try to create a customer profile in the customer service.
-    Returns True if successful, False if customer service is unavailable.
-    This is called after successful user registration.
+    Try to create a customer profile in the customer service with retries.
+    Returns True if successful, False if customer service remains unavailable.
     """
-    try:
-        profile_data = {
-            "user_id": user_id,
-            "email": email,
-            "full_name": full_name,
-            "role": "customer",  # Default role for new users
-        }
-        
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.post(
-                "http://localhost:8003/customers",
-                json=profile_data,
-                headers={
-                    "X-User-ID": user_id,
-                    "X-User-Email": email,
-                    "X-User-Role": "customer",
-                }
-            )
-            
-            if response.status_code == 201:
-                logger.info(f"Customer profile created for user {user_id}")
-                return True
-            else:
-                logger.warning(f"Failed to create customer profile: {response.status_code} - {response.text}")
-                return False
+    profile_data = {
+        "user_id": user_id,
+        "email": email,
+        "full_name": full_name,
+        "role": "customer",
+    }
+    url = f"{settings.customer_service_url.rstrip('/')}/customers"
+    
+    for attempt in range(1, 4):  # 3 attempts
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.post(
+                    url,
+                    json=profile_data,
+                    headers={
+                        "X-User-ID": user_id,
+                        "X-User-Email": email,
+                        "X-User-Role": "customer",
+                    }
+                )
                 
-    except Exception as e:
-        logger.warning(f"Could not create customer profile (customer service unavailable?): {e}")
-        return False
+                if response.status_code == 201:
+                    logger.info(f"Customer profile created for user {user_id}")
+                    return True
+                elif response.status_code == 409:
+                    logger.warning(f"Customer profile already exists to sync or duplicate email: {response.text}")
+                    return True  # Stop retrying on conflict
+                else:
+                    logger.warning(f"Attempt {attempt}: Failed to create customer profile: {response.status_code} - {response.text}")
+                    
+        except httpx.RequestError as e:
+            logger.warning(f"Attempt {attempt}: Could not connect to customer service {url} - {e}")
+            
+        if attempt < 3:
+            await asyncio.sleep(2 ** attempt)  # Backoff: 2s, 4s
+            
+    logger.error(f"Failed to create customer profile for {user_id} after retries.")
+    return False
 
 
 # ============================================================================
@@ -108,6 +116,7 @@ def root() -> dict[str, str]:
 @app.post("/auth/register", response_model=UserOut, status_code=status.HTTP_201_CREATED, tags=["Auth"])
 async def register(
     body: UserCreate,
+    background_tasks: BackgroundTasks,
     db: Annotated[AsyncIOMotorDatabase, Depends(get_database)],
 ) -> UserOut:
     """Register a new user and create customer profile"""
@@ -127,9 +136,9 @@ async def register(
     if created is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User creation failed")
     
-    # Try to create customer profile (async, fire-and-forget)
+    # Try to create customer profile in the background with retries
     user_id = str(result.inserted_id)
-    asyncio.create_task(create_customer_profile_async(user_id, email, body.full_name))
+    background_tasks.add_task(create_customer_profile_async, user_id, email, body.full_name)
     
     return user_doc_to_out(created)
 
@@ -198,3 +207,46 @@ async def change_password(
     )
 
     return {"message": "Password changed successfully"}
+
+
+# ============================================================================
+# INTERNAL SERVICE ENDPOINTS (Service-to-Service)
+# ============================================================================
+
+
+@app.get("/internal/users/{user_id}", tags=["Internal"])
+async def check_user_exists(user_id: str, db: Annotated[AsyncIOMotorDatabase, Depends(get_database)]) -> dict:
+    """
+    Internal endpoint: Check if user exists by ID.
+    
+    **Access:** Other microservices only (no auth required).
+    - Used by Feedback Service to validate user before accepting feedback
+    - Used by Order Service to verify customer exists
+    
+    Returns 200 if user exists, 404 if not.
+    """
+    logger.info(f"Checking if user {user_id} exists...")
+    
+    try:
+        # Try to convert to ObjectId and query
+        obj_id = ObjectId(user_id)
+        logger.info(f"Converted user_id to ObjectId: {obj_id}")
+        
+        user = await db.users.find_one({"_id": obj_id})
+        
+        if user:
+            logger.info(f"✓ User {user_id} found in database")
+            return {
+                "user_id": str(user["_id"]),
+                "email": user["email"],
+                "exists": True,
+            }
+        else:
+            logger.warning(f"✗ User {user_id} not found in database")
+    except Exception as e:
+        logger.error(f"✗ Error checking user {user_id}: {type(e).__name__}: {e}")
+    
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found",
+    )
