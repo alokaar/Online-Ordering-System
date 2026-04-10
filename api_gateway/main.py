@@ -265,7 +265,6 @@ async def proxy_request(path: str, request: Request):
     if target_service is None:
         if service_prefix in SERVICES:
             target_service = SERVICES[service_prefix]
-            remaining_path = "/" + "/".join(path_parts[1:]) if len(path_parts) > 1 else "/"
         else:
             raise HTTPException(
                 status_code=404,
@@ -273,7 +272,7 @@ async def proxy_request(path: str, request: Request):
             )
     
     # Build target URL
-    target_url = f"{target_service['url']}{remaining_path}"
+    target_url = f"{target_service['url']}/{path}"
     if request.url.query:
         target_url = f"{target_url}?{request.url.query}"
 
@@ -356,13 +355,18 @@ def custom_openapi():
         "components": {
             "schemas": {},
             "securitySchemes": {
-                "bearerAuth": {
-                    "type": "http",
-                    "scheme": "bearer",
-                    "bearerFormat": "JWT"
+                "OAuth2PasswordBearer": {
+                    "type": "oauth2",
+                    "flows": {
+                        "password": {
+                            "tokenUrl": "/auth/login",
+                            "scopes": {}
+                        }
+                    }
                 }
             }
         },
+        "security": [{"OAuth2PasswordBearer": []}],
         "tags": []
     }
     
@@ -436,9 +440,9 @@ def custom_openapi():
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "username": {"type": "string"},
                                         "email": {"type": "string"},
-                                        "password": {"type": "string"}
+                                        "password": {"type": "string"},
+                                        "full_name": {"type": "string"}
                                     }
                                 }
                             }
@@ -446,6 +450,37 @@ def custom_openapi():
                     },
                     "responses": {
                         "201": {"description": "User registered"}
+                    }
+                }
+            }
+            output["paths"][f"{prefix}/me"] = {
+                "get": {
+                    "summary": "Get current authenticated user profile",
+                    "tags": [service_name],
+                    "responses": {
+                        "200": {"description": "User profile details"}
+                    }
+                }
+            }
+            output["paths"][f"{prefix}/change-password"] = {
+                "post": {
+                    "summary": "Change password for authenticated user",
+                    "tags": [service_name],
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "current_password": {"type": "string"},
+                                        "new_password": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {"description": "Password changed successfully"}
                     }
                 }
             }
@@ -467,8 +502,11 @@ def custom_openapi():
                                     "type": "object",
                                     "properties": {
                                         "user_id": {"type": "string"},
+                                        "role": {"type": "string"},
                                         "email": {"type": "string"},
-                                        "full_name": {"type": "string"}
+                                        "full_name": {"type": "string"},
+                                        "phone": {"type": "string"},
+                                        "address": {"type": "string"}
                                     }
                                 }
                             }
@@ -477,24 +515,44 @@ def custom_openapi():
                     "responses": {"201": {"description": "Customer created"}}
                 }
             }
-            output["paths"][f"{prefix}/{{customer_id}}"] = {
+            output["paths"][f"{prefix}/me"] = {
+                "get": {
+                    "summary": "Get own customer profile",
+                    "tags": [service_name],
+                    "responses": {"200": {"description": "Customer profile"}}
+                }
+            }
+            output["paths"][f"{prefix}/{{user_id}}"] = {
                 "get": {
                     "summary": "Get Customer by ID",
                     "tags": [service_name],
-                    "parameters": [{"name": "customer_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "parameters": [{"name": "user_id", "in": "path", "required": True, "schema": {"type": "string"}}],
                     "responses": {"200": {"description": "Customer details"}}
                 },
-                "put": {
+                "patch": {
                     "summary": "Update Customer",
                     "tags": [service_name],
-                    "parameters": [{"name": "customer_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "requestBody": {"content": {"application/json": {"schema": {"type": "object"}}}},
+                    "parameters": [{"name": "user_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "full_name": {"type": "string"},
+                                        "phone": {"type": "string"},
+                                        "address": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "responses": {"200": {"description": "Customer updated"}}
                 },
                 "delete": {
                     "summary": "Delete Customer",
                     "tags": [service_name],
-                    "parameters": [{"name": "customer_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "parameters": [{"name": "user_id", "in": "path", "required": True, "schema": {"type": "string"}}],
                     "responses": {"200": {"description": "Customer deleted"}}
                 }
             }

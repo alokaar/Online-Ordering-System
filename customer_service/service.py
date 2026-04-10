@@ -8,6 +8,7 @@ from bson import ObjectId
 from fastapi import Depends, HTTPException, Header, status
 from jose import JWTError, jwt
 from motor.motor_asyncio import AsyncIOMotorDatabase
+import httpx
 from pymongo.errors import DuplicateKeyError
 
 from .config import settings
@@ -122,6 +123,22 @@ class CustomerService:
 
     async def create_customer(self, customer_data: CustomerCreate) -> CustomerOut:
         """Create a new customer"""
+        email = customer_data.email.lower().strip()
+
+        # Ensure the user exists in Auth Service (users there always have a hashed_password),
+        # otherwise the user would never be able to login.
+        await self.validate_auth_user_exists_and_matches_email(
+            user_id=customer_data.user_id,
+            email=email,
+        )
+
+        existing_email = await self.collection.find_one({"email": email})
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already registered in customer profile",
+            )
+
         existing = await self.collection.find_one({"user_id": customer_data.user_id})
         if existing:
             raise HTTPException(
@@ -131,7 +148,7 @@ class CustomerService:
 
         doc = {
             "user_id": customer_data.user_id,
-            "email": customer_data.email,
+            "email": email,
             "full_name": customer_data.full_name,
             "phone": customer_data.phone,
             "address": customer_data.address,
@@ -142,15 +159,10 @@ class CustomerService:
         try:
             result = await self.collection.insert_one(doc)
         except DuplicateKeyError as e:
-            if "email" in str(e):
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Email already registered in customer profile",
-                )
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Customer profile already exists for this user",
-            )
+            # Fallback for race conditions (indexes already enforce uniqueness).
+            if "email" in str(e).lower():
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered in customer profile") from None
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer profile already exists for this user") from None
         
         # Verify the document was actually inserted
         created = await self.collection.find_one({"_id": result.inserted_id})
@@ -161,6 +173,43 @@ class CustomerService:
             )
         logger.info(f"Customer created successfully | user_id={customer_data.user_id} | role={customer_data.role} | db_id={result.inserted_id}")
         return self._doc_to_out(created)
+
+    async def validate_auth_user_exists_and_matches_email(self, user_id: str, email: str) -> None:
+        """
+        Prevent creating customer profiles for non-existent Auth users (no password => cannot login).
+        Also prevents email mismatches for the given user_id.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    f"{settings.auth_service_url}/internal/users/{user_id}",
+                )
+        except httpx.RequestError as e:
+            logger.error("Auth service unreachable while validating user: %s", e)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Auth service is unreachable",
+            ) from None
+
+        if resp.status_code == 404:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User must be registered in Auth Service before creating a customer profile",
+            )
+
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Failed to validate user in Auth Service",
+            )
+
+        data = resp.json()
+        auth_email = (data.get("email") or "").lower().strip()
+        if auth_email != email:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email does not match the Auth user",
+            )
 
     async def get_customer_by_user_id(self, user_id: str) -> Optional[CustomerOut]:
         """Get customer by user ID"""
