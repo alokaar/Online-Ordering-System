@@ -21,8 +21,14 @@ from fastapi.openapi.utils import get_openapi
 # =====================================================
 # JWT SETTINGS
 # =====================================================
-SECRET_KEY = "your-secret-key-change-in-production"
-ALGORITHM = "HS256"
+import os
+from dotenv import load_dotenv
+
+load_dotenv(".env")
+load_dotenv("../../.env")
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-only-change-me-use-env-JWT_SECRET_KEY")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", scopes={})
@@ -289,7 +295,7 @@ async def proxy_request(path: str, request: Request):
     }
     
     # Inject universal Gateway Identity secret
-    headers["X-Gateway-Secret"] = "super-secret-key-123"
+    headers["X-Gateway-Secret"] = os.getenv("GATEWAY_SECRET", "super-secret-key-123")
     
     # Securely inject genuine X-Headers only if a valid JWT is provided
     auth_header = request.headers.get("authorization")
