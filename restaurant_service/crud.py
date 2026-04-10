@@ -4,12 +4,12 @@ from .database import restaurant_collection
 
 def serialize_restaurant(doc):
     return {
-        "id": doc["id"],
-        "name": doc["name"],
+        "id": doc.get("id", str(doc.get("_id", ""))),
+        "name": doc.get("name", "Unknown"),
         "description": doc.get("description", ""),
-        "address": doc["address"],
-        "phone": doc["phone"],
-        "cuisine": doc["cuisine"],
+        "address": doc.get("address", "N/A"),
+        "phone": doc.get("phone", "N/A"),
+        "cuisine": doc.get("cuisine", "General"),
         "is_active": doc.get("is_active", True),
         "menu": doc.get("menu", [])
     }
@@ -27,7 +27,7 @@ def create_restaurant(data: dict):
         "menu": []
     }
     restaurant_collection.insert_one(restaurant)
-    return restaurant
+    return serialize_restaurant(restaurant)
 
 
 def get_all_restaurants():
