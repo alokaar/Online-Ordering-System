@@ -41,7 +41,9 @@ class RealDatabase:
         result = await self.collection.insert_one(feedback_doc)
         feedback_doc["id"] = str(result.inserted_id)
         
-        logger.info(f"Created feedback {result.inserted_id} for restaurant {feedback_data.restaurant_id}")
+        logger.info(
+            f"Created feedback {result.inserted_id} | order_id={feedback_data.order_id} | restaurant_id={feedback_data.restaurant_id}"
+        )
         return self._to_feedback_out(feedback_doc)
     
     async def get_feedbacks_by_restaurant(self, restaurant_id: str) -> list[FeedbackOut]:
@@ -129,8 +131,8 @@ class RealDatabase:
             id=str(doc.get("_id", "")),
             user_id=doc["user_id"],
             email=doc["email"],
-            order_id=doc["order_id"],
-            restaurant_id=doc["restaurant_id"],
+            order_id=doc.get("order_id"),
+            restaurant_id=doc.get("restaurant_id"),
             rating=doc["rating"],
             review_text=doc["review_text"],
             created_at=doc["created_at"],
@@ -217,7 +219,9 @@ class MockDatabase:
         }
         
         self.feedbacks[feedback_id] = feedback
-        logger.info(f"Created feedback {feedback_id} for restaurant {feedback_data.restaurant_id}")
+        logger.info(
+            f"Created feedback {feedback_id} | order_id={feedback_data.order_id} | restaurant_id={feedback_data.restaurant_id}"
+        )
         return self._to_feedback_out(feedback)
     
     async def get_feedbacks_by_restaurant(self, restaurant_id: str) -> list[FeedbackOut]:
@@ -271,8 +275,8 @@ class MockDatabase:
             id=feedback["id"],
             user_id=feedback["user_id"],
             email=feedback["email"],
-            order_id=feedback["order_id"],
-            restaurant_id=feedback["restaurant_id"],
+            order_id=feedback.get("order_id"),
+            restaurant_id=feedback.get("restaurant_id"),
             rating=feedback["rating"],
             review_text=feedback["review_text"],
             created_at=datetime.fromisoformat(feedback["created_at"]),

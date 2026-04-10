@@ -21,8 +21,8 @@ async def combined_lifespan(fastapi_app: FastAPI):
 
 
 app = FastAPI(
-    title="Food Ordering API Gateway & Orchestrator",
-    description="API Gateway routing to microservices: Auth, Customer, Menu, Order, Restaurant",
+    title="Menu Management Service",
+    description="Menu Management API service (port 8007). Handles menu item CRUD and catalog operations.",
     version="0.1.0",
     lifespan=combined_lifespan,
 )
@@ -53,12 +53,12 @@ def health() -> dict[str, str]:
 @app.get("/", tags=["System"])
 def root() -> dict:
     return {
-        "message": "Food Ordering API Gateway",
+        "message": "Menu Management Service (port 8007)",
         "version": "0.1.0",
         "services": {
+            "menu": "http://localhost:8007",
             "auth": "http://localhost:8000",
             "customers": "http://localhost:8003",
-            "menu": "http://localhost:8007",
             "orders": "http://localhost:8002",
             "restaurants": "http://localhost:8005",
         },
