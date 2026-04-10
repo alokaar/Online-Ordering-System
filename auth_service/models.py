@@ -9,6 +9,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=200)
+    role: str = Field(default="customer", description="Role to register as ('customer' or 'restaurant')")
 
 
 class UserOut(BaseModel):

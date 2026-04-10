@@ -39,7 +39,7 @@ app = FastAPI(
 # ============================================================================
 
 
-async def create_customer_profile_async(user_id: str, email: str, full_name: str | None) -> bool:
+async def create_customer_profile_async(user_id: str, email: str, full_name: str | None, role: str) -> bool:
     """
     Try to create a customer profile in the customer service with retries.
     Returns True if successful, False if customer service remains unavailable.
@@ -48,9 +48,9 @@ async def create_customer_profile_async(user_id: str, email: str, full_name: str
         "user_id": user_id,
         "email": email,
         "full_name": full_name,
-        "role": "customer",
+        "role": role,
     }
-    url = f"{settings.customer_service_url.rstrip('/')}/customers"
+    url = f"{settings.customer_service_url.rstrip('/')}/internal/customers"
     
     for attempt in range(1, 4):  # 3 attempts
         try:
@@ -61,7 +61,8 @@ async def create_customer_profile_async(user_id: str, email: str, full_name: str
                     headers={
                         "X-User-ID": user_id,
                         "X-User-Email": email,
-                        "X-User-Role": "customer",
+                        "X-User-Role": role,
+                        "X-Gateway-Secret": "super-secret-key-123",
                     }
                 )
                 
@@ -121,6 +122,14 @@ async def register(
 ) -> UserOut:
     """Register a new user and create customer profile"""
     email = body.email.lower().strip()
+    role = body.role.lower().strip()
+
+    if role not in ["customer", "restaurant"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Role must be either 'customer' or 'restaurant'"
+        )
+
     doc = {
         "email": email,
         "hashed_password": hash_password(body.password),
@@ -138,7 +147,7 @@ async def register(
     
     # Try to create customer profile in the background with retries
     user_id = str(result.inserted_id)
-    background_tasks.add_task(create_customer_profile_async, user_id, email, body.full_name)
+    background_tasks.add_task(create_customer_profile_async, user_id, email, body.full_name, role)
     
     return user_doc_to_out(created)
 

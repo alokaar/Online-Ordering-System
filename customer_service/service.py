@@ -75,11 +75,18 @@ async def get_rbac_context(
     x_user_id: Annotated[str, Header()] = None,
     x_user_email: Annotated[str, Header()] = None,
     x_user_role: Annotated[str, Header()] = None,
+    x_gateway_secret: Annotated[str, Header()] = None,
 ) -> RBACContext:
     """
     Extract RBAC context from request headers (set by API Gateway).
-    Headers expected: X-User-ID, X-User-Email, X-User-Role
+    Headers expected: X-User-ID, X-User-Email, X-User-Role, X-Gateway-Secret
     """
+    if x_gateway_secret != settings.gateway_secret:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Direct access forbidden. Requests must come through the API Gateway.",
+        )
+
     if not all([x_user_id, x_user_email, x_user_role]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

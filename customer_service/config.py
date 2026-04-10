@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # real Auth users that have passwords).
     auth_service_url: str = "http://localhost:8000"
 
+    # Security configuration
+    gateway_secret: str = "super-secret-key-123"
+
     def get_mongodb_connection_uri(self) -> str:
         """Build Atlas SRV URI with RFC 3986–safe credentials, or use mongodb_uri for localhost."""
         host = (self.mongodb_cluster_host or "").strip()

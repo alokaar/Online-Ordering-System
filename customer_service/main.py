@@ -73,10 +73,10 @@ async def root() -> dict[str, str]:
 
 
 @app.post(
-    "/customers",
+    "/internal/customers",
     response_model=CustomerOut,
     status_code=status.HTTP_201_CREATED,
-    tags=["Customers"],
+    tags=["Internal"],
 )
 async def create_customer_profile(
     customer_data: CustomerCreate,

@@ -282,11 +282,38 @@ async def proxy_request(path: str, request: Request):
 
     logger.info(f"Routing to: {target_url}")
     
-    # Prepare headers (exclude problematic ones)
+    # Prepare headers (filter out problematic ones and strip ANY user-spoofed X-User headers)
     headers = {
         k: v for k, v in request.headers.items()
-        if k.lower() not in ["host", "content-length"]
+        if k.lower() not in ["host", "content-length", "x-user-id", "x-user-email", "x-user-role", "x-gateway-secret"]
     }
+    
+    # Inject universal Gateway Identity secret
+    headers["X-Gateway-Secret"] = "super-secret-key-123"
+    
+    # Securely inject genuine X-Headers only if a valid JWT is provided
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.lower().startswith("bearer "):
+        try:
+            token = auth_header.split(" ", 1)[1].strip()
+            user_data = await get_current_user(token)
+            user_id = user_data.get("sub")
+            if user_id:
+                headers["X-User-ID"] = str(user_id)
+                # Fetch true role natively from Customer Service DB
+                customer_service = SERVICES.get("customers")
+                if customer_service:
+                    internal_url = f"{customer_service['url']}/internal/customers/{user_id}"
+                    async with httpx.AsyncClient(timeout=3.0) as client:
+                        resp = await client.get(internal_url)
+                        if resp.status_code == 200:
+                            cinfo = resp.json()
+                            headers["X-User-Role"] = cinfo.get("role", "customer")
+                            headers["X-User-Email"] = cinfo.get("email", "")
+        except Exception as e:
+            logger.warning(f"Header injection failed: {e}")
+            import traceback
+            traceback.print_exc()
     
     # Get request body
     body = await request.body()
@@ -442,7 +469,8 @@ def custom_openapi():
                                     "properties": {
                                         "email": {"type": "string"},
                                         "password": {"type": "string"},
-                                        "full_name": {"type": "string"}
+                                        "full_name": {"type": "string"},
+                                        "role": {"type": "string", "description": "customer or restaurant"}
                                     }
                                 }
                             }
@@ -491,28 +519,6 @@ def custom_openapi():
                     "summary": "List All Customers",
                     "tags": [service_name],
                     "responses": {"200": {"description": "List of customers"}}
-                },
-                "post": {
-                    "summary": "Create New Customer",
-                    "tags": [service_name],
-                    "requestBody": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "user_id": {"type": "string"},
-                                        "role": {"type": "string"},
-                                        "email": {"type": "string"},
-                                        "full_name": {"type": "string"},
-                                        "phone": {"type": "string"},
-                                        "address": {"type": "string"}
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "responses": {"201": {"description": "Customer created"}}
                 }
             }
             output["paths"][f"{prefix}/me"] = {
