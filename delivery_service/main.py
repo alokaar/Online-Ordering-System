@@ -1,9 +1,8 @@
 from fastapi import FastAPI, HTTPException
-from models import CreateDelivery
-from service import DeliveryService
+from .models import CreateDelivery, DeliveryUpdate
+from .service import DeliveryService
 from bson import ObjectId
-from database import delivery_collection
-from models import DeliveryUpdate
+from .database import delivery_collection
 
 app = FastAPI(title="Delivery Service")
 

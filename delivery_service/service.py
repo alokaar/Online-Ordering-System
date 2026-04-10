@@ -3,8 +3,8 @@ import httpx
 
 from datetime import datetime
 from bson import ObjectId
-from database import delivery_collection, driver_collection
-from config import ORDER_SERVICE_URL
+from .database import delivery_collection, driver_collection
+from .config import ORDER_SERVICE_URL
 
 class DeliveryService:
 
