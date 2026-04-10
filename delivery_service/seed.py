@@ -1,4 +1,4 @@
-from database import driver_collection
+from .database import driver_collection
 
 drivers = [
     {"name": "Kamal", "phone": "0771234567" , "vehicle_no": "ABC234", "vehicle_type": "Bike"},
@@ -6,6 +6,6 @@ drivers = [
     {"name": "Sunil", "phone": "0714567890", "vehicle_no": "ABC254", "vehicle_type": "Scooter"}
 ]
 
-driver_collection.insert_many(drivers)
-
-print("Drivers inserted!")
+if __name__ == "__main__":
+    driver_collection.insert_many(drivers)
+    print("Drivers inserted!")
