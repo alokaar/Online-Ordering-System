@@ -720,6 +720,12 @@ def custom_openapi():
                     "parameters": [{"name": "delivery_id", "in": "path", "required": True, "schema": {"type": "string"}}],
                     "requestBody": {"content": {"application/json": {"schema": {"type": "object"}}}},
                     "responses": {"200": {"description": "Delivery updated"}}
+                },
+                "delete": {
+                    "summary": "Cancel Delivery",
+                    "tags": [service_name],
+                    "parameters": [{"name": "delivery_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "responses": {"200": {"description": "Delivery cancelled"}}
                 }
             }
         
