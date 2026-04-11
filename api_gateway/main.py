@@ -114,7 +114,7 @@ SERVICES = {
         "name": "Feedback Service",
         "url": "http://127.0.0.1:8004",
         "port": 8004,
-        "prefix": "/feedback",
+        "prefix": "/feedbacks",
         "description": "Customer feedback, ratings, and reviews",
     },
 }
@@ -795,13 +795,8 @@ def custom_openapi():
         
         elif service_key == "feedback":
             output["paths"][f"{prefix}"] = {
-                "get": {
-                    "summary": "List All Feedback",
-                    "tags": [service_name],
-                    "responses": {"200": {"description": "List of feedback"}}
-                },
                 "post": {
-                    "summary": "Submit Feedback",
+                    "summary": "Submit Order Feedback",
                     "tags": [service_name],
                     "requestBody": {
                         "content": {
@@ -811,13 +806,40 @@ def custom_openapi():
                                     "properties": {
                                         "order_id": {"type": "string"},
                                         "rating": {"type": "integer"},
-                                        "comment": {"type": "string"}
+                                        "review_text": {"type": "string"}
                                     }
                                 }
                             }
                         }
                     },
                     "responses": {"201": {"description": "Feedback submitted"}}
+                }
+            }
+            output["paths"][f"{prefix}/restaurant/{{restaurant_id}}"] = {
+                "post": {
+                    "summary": "Submit Restaurant Feedback",
+                    "tags": [service_name],
+                    "parameters": [{"name": "restaurant_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "rating": {"type": "integer"},
+                                        "review_text": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {"201": {"description": "Feedback submitted"}}
+                },
+                "get": {
+                    "summary": "Get Restaurant Feedbacks",
+                    "tags": [service_name],
+                    "parameters": [{"name": "restaurant_id", "in": "path", "required": True, "schema": {"type": "string"}}],
+                    "responses": {"200": {"description": "List of feedbacks for restaurant"}}
                 }
             }
             output["paths"][f"{prefix}/{{feedback_id}}"] = {
@@ -831,7 +853,19 @@ def custom_openapi():
                     "summary": "Update Feedback",
                     "tags": [service_name],
                     "parameters": [{"name": "feedback_id", "in": "path", "required": True, "schema": {"type": "string"}}],
-                    "requestBody": {"content": {"application/json": {"schema": {"type": "object"}}}},
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "rating": {"type": "integer"},
+                                        "review_text": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "responses": {"200": {"description": "Feedback updated"}}
                 },
                 "delete": {

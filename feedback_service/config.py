@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     order_service_url: str = "http://localhost:8002"  # Order Service port
     restaurant_service_url: str = "http://localhost:8006"  # Restaurant Service port (placeholder)
     
+    # Security Configuration
+    gateway_secret: str = "super-secret-key-123"
+    
     # Feature Flags
     # ===================================
     # TO USE MONGODB:
